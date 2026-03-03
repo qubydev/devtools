@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Online Editor</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Ensures the editor fills the remaining screen space perfectly */
+        .editor-container {
+            position: relative;
+            flex-grow: 1;
+        }
+        #editor {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex flex-col font-sans overflow-hidden">
+
+    <header class="bg-gray-800 border-b border-gray-700 p-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 shadow-md z-10">
+        
+        <div class="flex items-center gap-2 text-lg font-semibold text-blue-400 pl-2">
+            <i class="fas fa-code"></i>
+            <span class="hidden sm:inline">Code<span class="text-gray-100">Pad</span></span>
+        </div>
+
+        <div class="flex-1 flex justify-center w-full order-last sm:order-none sm:w-auto">
+            <div class="relative w-full max-w-md">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <i class="fas fa-file-lines text-gray-400"></i>
+                </div>
+                <input 
+                    type="text" 
+                    id="filename" 
+                    value=""
+                    placeholder="filename.ext" 
+                    class="w-full bg-gray-900 border border-gray-600 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2 font-mono transition-colors text-center"
+                >
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 w-auto justify-end pr-2">
+            <input type="file" id="file-upload" class="hidden">
+            
+            <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-2 px-3 py-2 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200 transition-all text-sm font-medium shadow-sm">
+                <i class="fas fa-upload"></i> <span class="hidden md:inline">Upload</span>
+            </button>
+            
+            <button id="download-btn" class="flex items-center gap-2 px-3 py-2 bg-blue-600 rounded hover:bg-blue-500 text-white transition-all text-sm font-medium shadow-sm">
+                <i class="fas fa-download"></i> <span class="hidden md:inline">Download</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="editor-container">
+        <div id="editor"></div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-modelist.js"></script>
+    
+    <script>
+        // Initialize Ace Editor
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/one_dark"); // Modern dark theme
+        editor.setShowPrintMargin(false);      // Removes the vertical line
+        
+        // Setup extensions and elements
+        const modelist = ace.require("ace/ext/modelist");
+        const filenameInput = document.getElementById('filename');
+
+        // Function to update syntax highlighting based on filename
+        function updateMode() {
+            // Default to .txt behavior if the input is empty
+            const filename = filenameInput.value || 'untitled.txt';
+            const mode = modelist.getModeForPath(filename).mode;
+            editor.session.setMode(mode);
+        }
+
+        // Listen for user typing in the filename box
+        filenameInput.addEventListener('input', updateMode);
+
+        // Upload functionality
+        document.getElementById('file-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Update filename input and trigger syntax highlighting
+            filenameInput.value = file.name;
+            updateMode();
+            
+            // Read file as text
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Set editor text (-1 puts cursor at the top)
+                editor.setValue(event.target.result, -1); 
+            };
+            reader.readAsText(file);
+            
+            // Reset the file input so you can upload the same file again if needed
+            this.value = null;
+        });
+
+        // Download functionality
+        document.getElementById('download-btn').addEventListener('click', function() {
+            const text = editor.getValue();
+            const filename = filenameInput.value || 'untitled.txt';
+            
+            // Create a text blob
+            const blob = new Blob([text], { type: 'text/plain' });
+            
+            // Create a temporary anchor element to trigger download
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            
+            // Click it and clean up
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        });
+
+        // Initialize mode on page load
+        updateMode();
+    </script>
+</body>
+</html>
